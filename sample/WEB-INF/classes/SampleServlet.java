@@ -29,10 +29,12 @@ public class SampleServlet extends HttpServlet {
 
         try {
             p.waitFor();
+            stdoutReader.terminate();
+            stderrReader.terminate();
+            stdoutReader.join();
+            stderrReader.join();
         } catch (InterruptedException e) {
             out.println("InterruptedException");
-            out.close();
-            return;
         }
 
         out.close();
@@ -44,11 +46,16 @@ class StreamReader extends Thread
 {
     InputStream is;
     PrintWriter output;
+    volatile boolean run = true;
 
     StreamReader(InputStream is, PrintWriter output)
     {
         this.is = is;
         this.output = output;
+    }
+
+    public void terminate() {
+        run = false;
     }
 
     public void run()
@@ -57,7 +64,7 @@ class StreamReader extends Thread
             InputStreamReader isr = new InputStreamReader(is);
             BufferedReader br = new BufferedReader(isr);
             String line = null;
-            while ( (line = br.readLine()) != null) {
+            while ((line = br.readLine()) != null && this.run) {
                 synchronized (this.output) {
                     this.output.println(line);
                 }
